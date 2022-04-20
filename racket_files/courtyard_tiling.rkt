@@ -1,4 +1,5 @@
 #lang racket
+(require racket/draw)
 
 
 ;;------------Tile definitions---------
@@ -116,6 +117,27 @@
   (remove-duplicates (recTile (list (tile (car missingTile) (cadr missingTile) "0" "O")) '(0 0) (expt 2 n)))
   )
 
+;; ------------------------------------ Imaging ----------------------------
+
+(define (paintRemaining yard dc)
+  (let ([aTile (car yard) ] [x (getX aTile] [y getY aTile])
+  (send dc set-pixel )
+    )
+  )
+
+  
+(define (genCourtyardImage missingTile n)
+  (let (
+        [yard (tileYard missingTile n)]
+        [target (make-bitmap (expt 2 n) (expt 2 n))]
+        [dc (new bitmap-dc% [bitmap target]]
+       )
+
+
+    )
+
+
+  )
 
 
 ;;------------------------------ TEST cases ----------------------------------
