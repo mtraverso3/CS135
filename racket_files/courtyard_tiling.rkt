@@ -1,11 +1,24 @@
 #lang racket
 
 
+;;------------Tile definitions---------
+
 ;;A tile contains a (x,y) value and a `value` for coloring
-;; (tile x y value) -> ((x,y), value)
-;(define (tromino x y value)
- ; (list (list x y) value)
-;);
+(define (tile x y value)
+  (list (list x y) value)
+)
+
+;;get x coordinate for a tile
+(define (getTileX tile)
+  (car (car tile))
+)
+
+;;get y coordinate for a tile
+(define (getTileY tile)
+  (cadr (car tile))
+)
+
+;;----------------------------
 
 ;; checks if a < value < b
 (define (in-range? a b value)
@@ -15,8 +28,8 @@
 ;;returns only the covered tiles within the bounds given
 (define (filter-yard yard currOrigin currSize)
   (for/list ([tile yard]
-             #:when (and (in-range? (car currOrigin)  (+ currSize (car currOrigin))  (car tile))
-                         (in-range? (cadr currOrigin) (+ currSize (cadr currOrigin)) (cadr tile))
+             #:when (and (in-range? (car currOrigin)  (+ currSize (car currOrigin))  (getTileX tile))
+                         (in-range? (cadr currOrigin) (+ currSize (cadr currOrigin)) (getTileY tile))
                     )
             )
              tile
@@ -27,7 +40,7 @@
 ;; 2 3 ^
 ;; 0 1 ->
 (define (find-missing yard currOrigin currSize)
-  (let* ([tile (car (filter-yard yard currOrigin currSize))] [x (car tile)] [y (cadr tile)])
+  (let* ([tile (car (filter-yard yard currOrigin currSize))] [x (getTileX tile)] [y (getTileY tile)])
     (+
        (if (>= x (+ (car currOrigin)  (/ currSize 2))) 1 0)
        (if (>= y (+ (cadr currOrigin) (/ currSize 2))) 2 0)
@@ -40,7 +53,7 @@
      (format "~v-~v-~v-~v" (car currOrigin) (cadr currOrigin) currSize quadrant)
   )
 
-;;returns the center tile, given origin and size
+;;returns the center coordinate, given origin and size
 (define (get-center currOrigin currSize)
   (list (+ (car currOrigin) (/ currSize 2)) (+ (cadr currOrigin) (/ currSize 2 ) ) )
   )
@@ -55,10 +68,10 @@
          )
     (append
       (cond
-        [(equal? quadrant 2) (list (list x y r)        (list x (sub1 y) r)    (list (sub1 x) (sub1 y) r))]
-        [(equal? quadrant 3) (list (list x (sub1 y) r) (list (sub1 x) y r)    (list (sub1 x) (sub1 y) r))] 
-        [(equal? quadrant 0) (list (list x y r)        (list (sub1 x) y r)    (list x (sub1 y) r))] 
-        [(equal? quadrant 1) (list (list x y r)        (list (sub1 x) y r)    (list (sub1 x) (sub1 y) r))] 
+        [(equal? quadrant 2) (list (tile x y r)        (tile x (sub1 y) r)    (tile (sub1 x) (sub1 y) r))]
+        [(equal? quadrant 3) (list (tile x (sub1 y) r) (tile (sub1 x) y r)    (tile (sub1 x) (sub1 y) r))] 
+        [(equal? quadrant 0) (list (tile x y r)        (tile (sub1 x) y r)    (tile x (sub1 y) r))] 
+        [(equal? quadrant 1) (list (tile x y r)        (tile (sub1 x) y r)    (tile (sub1 x) (sub1 y) r))] 
       )
       yard
     )
@@ -86,12 +99,18 @@
   )
 )
 
-(define (tileYard missingTile n)
-  (remove-duplicates (recTile (list missingTile) '(0 0) (expt 2 n)))
-  )
-;;TEST cases
 
-;; (recTile '((1 1)) '(0 0) 4) ;;
-;; (tileYard '(1 1) 2) ;;test 4x4 courtyard
-;; (place-tile-center '((1 2)) '(0 2) 2 1) ;;test base 2x2 case
-;; (find-missing '((1 2)) '(0 2) 2) ;;test finding quadrant for 2x2 case
+;; TODO: Fix duplicates
+;;calls the recursive tiler with starting values and removes duplicates 
+(define (tileYard missingTile n)
+  (remove-duplicates (recTile (list (tile (car missingTile) (cadr missingTile) 0)) '(0 0) (expt 2 n)))
+  )
+
+
+
+;;------------------------------ TEST cases ----------------------------------
+
+;; (recTile '((1 1)) '(0 0) 4)              ;;test recursive tiler
+;; (tileYard '(1 1) 2)                      ;;test 4x4 courtyard
+;; (place-tile-center '((1 2)) '(0 2) 2 1)  ;;test base 2x2 case
+;; (find-missing '((1 2)) '(0 2) 2)         ;;test finding quadrant for base 2x2 case
