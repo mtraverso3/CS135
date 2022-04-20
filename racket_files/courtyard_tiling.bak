@@ -1,0 +1,24 @@
+#lang eopl
+
+
+;;A tile contains a (x,y) value and a `value` for coloring
+;; (tile x y value) -> ((x,y), value)
+(define (tile x y value)
+  (list (list x y) value)
+)
+
+;; finds the quadrant that contains the missing tile
+(define (find-missing yard currOrigin currSize)
+ "TODO: stuff"
+)
+
+;; places tiles in appropriate spots, given missing quadrant and center
+(define (place-tile)
+  "TODO: stuff"
+)
+
+
+;;recursively tiles the grid, quadrant by quadrant
+(define (recTile yard origSize currOrigin currSize)
+  "TODO: stuff"
+)
