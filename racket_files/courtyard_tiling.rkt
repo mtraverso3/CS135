@@ -4,8 +4,8 @@
 ;;------------Tile definitions---------
 
 ;;A tile contains a (x,y) value and a `value` for coloring
-(define (tile x y value)
-  (list (list x y) value)
+(define (tile x y uid color)
+  (list (list x y) uid color)
 )
 
 ;;get x coordinate for a tile
@@ -53,6 +53,15 @@
      (format "~v-~v-~v-~v" (car currOrigin) (cadr currOrigin) currSize quadrant)
   )
 
+;; returns a color for each tromino
+(define (generate-color currOrigin currSize)
+     (cond
+       [(not (equal? currSize 2)) "R"]
+       [(equal? (modulo (car currOrigin) 4 ) (modulo (cadr currOrigin) 4 ) ) "G"]
+       [else "B"]
+     )
+  )
+
 ;;returns the center coordinate, given origin and size
 (define (get-center currOrigin currSize)
   (list (+ (car currOrigin) (/ currSize 2)) (+ (cadr currOrigin) (/ currSize 2 ) ) )
@@ -65,13 +74,14 @@
            [x (car center)]
            [y (cadr center)]
            [r (generate-id currOrigin currSize quadrant)]
+           [c (generate-color currOrigin currSize)]
          )
     (append
       (cond
-        [(equal? quadrant 2) (list (tile x y r)        (tile x (sub1 y) r)    (tile (sub1 x) (sub1 y) r))]
-        [(equal? quadrant 3) (list (tile x (sub1 y) r) (tile (sub1 x) y r)    (tile (sub1 x) (sub1 y) r))] 
-        [(equal? quadrant 0) (list (tile x y r)        (tile (sub1 x) y r)    (tile x (sub1 y) r))] 
-        [(equal? quadrant 1) (list (tile x y r)        (tile (sub1 x) y r)    (tile (sub1 x) (sub1 y) r))] 
+        [(equal? quadrant 2) (list (tile x y r c)        (tile x (sub1 y) r c)    (tile (sub1 x) (sub1 y) r c))]
+        [(equal? quadrant 3) (list (tile x (sub1 y) r c) (tile (sub1 x) y r c)    (tile (sub1 x) (sub1 y) r c))]
+        [(equal? quadrant 0) (list (tile x y r c)        (tile (sub1 x) y r c)    (tile x (sub1 y) r c))]
+        [(equal? quadrant 1) (list (tile x y r c)        (tile (sub1 x) y r c)    (tile (sub1 x) (sub1 y) r c))]
       )
       yard
     )
@@ -103,13 +113,15 @@
 ;; TODO: Fix duplicates
 ;;calls the recursive tiler with starting values and removes duplicates 
 (define (tileYard missingTile n)
-  (remove-duplicates (recTile (list (tile (car missingTile) (cadr missingTile) 0)) '(0 0) (expt 2 n)))
+  (remove-duplicates (recTile (list (tile (car missingTile) (cadr missingTile) "0" "O")) '(0 0) (expt 2 n)))
   )
 
 
 
 ;;------------------------------ TEST cases ----------------------------------
 
+
+;; (generate-color '(2 2) currSize 0)
 ;; (recTile '((1 1)) '(0 0) 4)              ;;test recursive tiler
 ;; (tileYard '(1 1) 2)                      ;;test 4x4 courtyard
 ;; (place-tile-center '((1 2)) '(0 2) 2 1)  ;;test base 2x2 case
