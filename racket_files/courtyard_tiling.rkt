@@ -1,6 +1,7 @@
 #lang racket
 (require racket/draw)
 
+ (require graphics/graphics)
 
 ;;------------Tile definitions---------
 
@@ -44,9 +45,9 @@
 ;; returns a color for each tromino
 (define (generate-color currOrigin currSize)
      (cond
-       [(not (equal? currSize 2)) "R"]
-       [(equal? (modulo (car currOrigin) 4 ) (modulo (cadr currOrigin) 4 ) ) "G"]
-       [else "B"]
+       [(not (equal? currSize 2)) "Tomato"]
+       [(equal? (modulo (car currOrigin) 4 ) (modulo (cadr currOrigin) 4 ) ) "Pale Green"]
+       [else "CornflowerBlue"]
      )
   )
 
@@ -121,29 +122,35 @@
 ;; TODO: Fix duplicates
 ;;calls the recursive tiler with starting values and removes duplicates 
 (define (tileYard missingTile n)
-  (recTile (tile (car missingTile) (cadr missingTile) "0" "O") '(0 0) (expt 2 n))
+  (recTile (tile (car missingTile) (cadr missingTile) "0" "black") '(0 0) (expt 2 n))
   )
 
 ;; ------------------------------------ Imaging ----------------------------
 
-;;(define (paintRemaining yard dc)
-;;  (let ([aTile (car yard) ] [x (getX aTile)] [y getY aTile])
-;;  (send dc set-pixel )
-;;    )
-;;  )
-;;
-;;(define (genCourtyardImage missingTile n)
-;;  (let (
-;;        [yard (tileYard missingTile n)]
-;;        [target (make-bitmap (expt 2 n) (expt 2 n))]
-;;        [dc (new bitmap-dc% [bitmap target]]
-;;       )
-;;
-;;
-;;    )
-;;
-;;
-;;  )
+(define (paintRemaining yard dc n)
+  (if (equal? yard '())
+      #t
+      (let* ([aTile (car yard) ] [x (getX (getTileCoord aTile))] [y (- n (getY (getTileCoord aTile)))])
+        
+        (send dc set-pixel x y (send the-color-database find-color (caddr aTile)) )
+        (paintRemaining (cdr yard) dc n)
+    )
+  )
+)
+
+(define (genCourtyardImage missingTile n)
+  (let* (
+        [yard (tileYard missingTile n)]
+        [target (make-bitmap (expt 2 n) (expt 2 n))]
+        [dc (new bitmap-dc% [bitmap target])]
+       )
+    (paintRemaining yard dc (sub1(expt 2 n)))
+    (send target save-file "box.png" 'png)
+    )
+
+
+  )
+
 
 
 ;;------------------------------ TEST cases ----------------------------------
@@ -153,3 +160,4 @@
 ;; (tileYard '(1 1) 2)                      ;;test 4x4 courtyard
 ;; (place-tile-center '((1 2)) '(0 2) 2 1)  ;;test base 2x2 case
 ;; (find-missing '((1 2)) '(0 2) 2)         ;;test finding quadrant for base 2x2 case
+ (genCourtyardImage '(4 13) 5)
