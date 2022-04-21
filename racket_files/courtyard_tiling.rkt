@@ -55,8 +55,10 @@
   (list (+ (car currOrigin) (/ currSize 2)) (+ (cadr currOrigin) (/ currSize 2 ) ) )
   )
 
+
+;; 2 3
+;; 0 1
 (define (getQuad center tile)
-  (
    (let (
          [centerX (getX center)]
          [centerY (getY center)]
@@ -64,11 +66,12 @@
          [tileY (getY (getTileCoord tile))]
          )
    (cond
-     [(and (< x ) ())]
-     []
-     []
-     []
+     [(and (< tileX centerX ) (< tileY centerY)) 0]
+     [(and (>= tileX centerX ) (< tileY centerY)) 1]
+     [(and (< tileX centerX ) (>= tileY centerY)) 2]
+     [(and (>= tileX centerX ) (>= tileY centerY)) 3]
    )
+  )
   )
 
 
@@ -78,7 +81,7 @@
         [existingQuad (getQuad center existingTile)])
     (if (equal? existingQuad targetQuad)
         existingTile
-        (let ([r (generate-id currOrigin currSize quadrant)]
+        (let ([r (generate-id currOrigin currSize existingQuad)]
               [c (generate-color currOrigin currSize)])
           (cond
           [(equal? targetQuad 0) (tile (sub1 (car center)) (sub1 (cadr center)) r c)]
@@ -93,22 +96,22 @@
 
 
 ;;recursively places trominoes on the grid, quadrant by quadrant
-(define (recTile yard currOrigin currSize)
+(define (recTile missingTile currOrigin currSize)
   (if (equal? currSize 2)
-      (append
-           (createIfNeeded currOrigin currSize 0 yard) ;;quad 0
-           (createIfNeeded currOrigin currSize 1 yard) ;;quad 1
-           (createIfNeeded currOrigin currSize 2 yard) ;;quad 2
-           (createIfNeeded currOrigin currSize 3 yard) ;;quad 3
+      (list
+           (createIfNeeded currOrigin currSize 0 missingTile) ;;quad 0
+           (createIfNeeded currOrigin currSize 1 missingTile) ;;quad 1
+           (createIfNeeded currOrigin currSize 2 missingTile) ;;quad 2
+           (createIfNeeded currOrigin currSize 3 missingTile) ;;quad 3
          )
       (let* (
              [newSize (/ currSize 2)]
             )
         (append
-           (recTile (createIfNeeded currOrigin currSize 0 yard) currOrigin newSize) ;;quad 0
-           (recTile (createIfNeeded currOrigin currSize 1 yard) (list (+ (car currOrigin) newSize) (cadr currOrigin)) newSize) ;;quad 1
-           (recTile (createIfNeeded currOrigin currSize 2 yard) (list (car currOrigin) (+ (cadr currOrigin) newSize)) newSize) ;;quad 2
-           (recTile (createIfNeeded currOrigin currSize 3 yard) (list (+ (car currOrigin) newSize) (+ (cadr currOrigin) newSize)) newSize) ;;quad 3
+           (recTile (createIfNeeded currOrigin currSize 0 missingTile) currOrigin newSize) ;;quad 0
+           (recTile (createIfNeeded currOrigin currSize 1 missingTile) (list (+ (car currOrigin) newSize) (cadr currOrigin)) newSize) ;;quad 1
+           (recTile (createIfNeeded currOrigin currSize 2 missingTile) (list (car currOrigin) (+ (cadr currOrigin) newSize)) newSize) ;;quad 2
+           (recTile (createIfNeeded currOrigin currSize 3 missingTile) (list (+ (car currOrigin) newSize) (+ (cadr currOrigin) newSize)) newSize) ;;quad 3
          ) 
       )
   )
@@ -118,18 +121,17 @@
 ;; TODO: Fix duplicates
 ;;calls the recursive tiler with starting values and removes duplicates 
 (define (tileYard missingTile n)
-  (remove-duplicates (recTile (list (tile (car missingTile) (cadr missingTile) "0" "O")) '(0 0) (expt 2 n)))
+  (recTile (tile (car missingTile) (cadr missingTile) "0" "O") '(0 0) (expt 2 n))
   )
 
 ;; ------------------------------------ Imaging ----------------------------
 
 ;;(define (paintRemaining yard dc)
-;;  (let ([aTile (car yard) ] [x (getX aTile] [y getY aTile])
+;;  (let ([aTile (car yard) ] [x (getX aTile)] [y getY aTile])
 ;;  (send dc set-pixel )
 ;;    )
 ;;  )
 ;;
-;;  
 ;;(define (genCourtyardImage missingTile n)
 ;;  (let (
 ;;        [yard (tileYard missingTile n)]
@@ -148,7 +150,6 @@
 
 
 ;; (generate-color '(2 2) currSize 0)
-;; (recTile '((1 1)) '(0 0) 4)              ;;test recursive tiler
 ;; (tileYard '(1 1) 2)                      ;;test 4x4 courtyard
 ;; (place-tile-center '((1 2)) '(0 2) 2 1)  ;;test base 2x2 case
 ;; (find-missing '((1 2)) '(0 2) 2)         ;;test finding quadrant for base 2x2 case
