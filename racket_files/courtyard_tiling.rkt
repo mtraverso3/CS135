@@ -10,44 +10,31 @@
 )
 
 ;;get x coordinate for a tile
-(define (getTileX tile)
-  (car (car tile))
+(define (getTileCoord tile)
+  (car tile)
 )
 
-;;get y coordinate for a tile
-(define (getTileY tile)
-  (cadr (car tile))
+
+;; --------- Coordinate Definitions --------------
+
+;;A tile contains a (x,y) value and a `value` for coloring
+(define (coord x y)
+  (list x y)
 )
+
+;;get x coordinate
+(define (getX coord)
+  (car coord)
+)
+
+;;get y coordinate
+(define (getY coord)
+  (cadr coord)
+)
+
 
 ;;----------------------------
 
-;; checks if a < value < b
-(define (in-range? a b value)
-  (and (<= a value) (> b value))
-)
-
-;;returns only the covered tiles within the bounds given
-(define (filter-yard yard currOrigin currSize)
-  (for/list ([tile yard]
-             #:when (and (in-range? (car currOrigin)  (+ currSize (car currOrigin))  (getTileX tile))
-                         (in-range? (cadr currOrigin) (+ currSize (cadr currOrigin)) (getTileY tile))
-                    )
-            )
-             tile
-    )
-)
-
-;; finds the quadrant that contains a missing tile
-;; 2 3 ^
-;; 0 1 ->
-(define (find-missing yard currOrigin currSize)
-  (let* ([tile (car (filter-yard yard currOrigin currSize))] [x (getTileX tile)] [y (getTileY tile)])
-    (+
-       (if (>= x (+ (car currOrigin)  (/ currSize 2))) 1 0)
-       (if (>= y (+ (cadr currOrigin) (/ currSize 2))) 2 0)
-    )
-  )
-)
 
 ;; returns a unique id for each tromino, used for differentiating trominoes in the output.
 (define (generate-id currOrigin currSize quadrant)
@@ -68,23 +55,38 @@
   (list (+ (car currOrigin) (/ currSize 2)) (+ (cadr currOrigin) (/ currSize 2 ) ) )
   )
 
-;; places trominoes in appropriate spots, given missing quadrant and center
-(define (place-tromino-center yard currOrigin currSize quadrant)
-  (let* (
-           [center (get-center currOrigin currSize)]
-           [x (car center)]
-           [y (cadr center)]
-           [r (generate-id currOrigin currSize quadrant)]
-           [c (generate-color currOrigin currSize)]
+(define (getQuad center tile)
+  (
+   (let (
+         [centerX (getX center)]
+         [centerY (getY center)]
+         [tileX (getX (getTileCoord tile))]
+         [tileY (getY (getTileCoord tile))]
          )
-    (append
-      (cond
-        [(equal? quadrant 2) (list (tile x y r c)        (tile x (sub1 y) r c)    (tile (sub1 x) (sub1 y) r c))]
-        [(equal? quadrant 3) (list (tile x (sub1 y) r c) (tile (sub1 x) y r c)    (tile (sub1 x) (sub1 y) r c))]
-        [(equal? quadrant 0) (list (tile x y r c)        (tile (sub1 x) y r c)    (tile x (sub1 y) r c))]
-        [(equal? quadrant 1) (list (tile x y r c)        (tile (sub1 x) y r c)    (tile (sub1 x) (sub1 y) r c))]
-      )
-      yard
+   (cond
+     [(and (< x ) ())]
+     []
+     []
+     []
+   )
+  )
+
+
+(define (createIfNeeded currOrigin currSize targetQuad existingTile)
+  (let* (
+        [center (get-center currOrigin currSize)]
+        [existingQuad (getQuad center existingTile)])
+    (if (equal? existingQuad targetQuad)
+        existingTile
+        (let ([r (generate-id currOrigin currSize quadrant)]
+              [c (generate-color currOrigin currSize)])
+          (cond
+          [(equal? targetQuad 0) (tile (sub1 (car center)) (sub1 (cadr center)) r c)]
+          [(equal? targetQuad 1) (tile (car center)        (sub1 (cadr center)) r c)]
+          [(equal? targetQuad 2) (tile (sub1 (car center)) (cadr center)        r c)]
+          [(equal? targetQuad 3) (tile (car center)       (cadr center)        r c)]
+          ) 
+        )
     )
   )
 )
@@ -93,18 +95,20 @@
 ;;recursively places trominoes on the grid, quadrant by quadrant
 (define (recTile yard currOrigin currSize)
   (if (equal? currSize 2)
-      (place-tromino-center yard currOrigin currSize (find-missing yard currOrigin currSize))
+      (append
+           (createIfNeeded currOrigin currSize 0 yard) ;;quad 0
+           (createIfNeeded currOrigin currSize 1 yard) ;;quad 1
+           (createIfNeeded currOrigin currSize 2 yard) ;;quad 2
+           (createIfNeeded currOrigin currSize 3 yard) ;;quad 3
+         )
       (let* (
-             [quadrant (find-missing yard currOrigin currSize)]
-             [newYard (place-tromino-center yard currOrigin currSize quadrant)]
              [newSize (/ currSize 2)]
             )
         (append
-           newYard
-           (recTile newYard currOrigin newSize) ;;quad 0
-           (recTile newYard (list (+ (car currOrigin) newSize) (cadr currOrigin)) newSize) ;;quad 1
-           (recTile newYard (list (car currOrigin) (+ (cadr currOrigin) newSize)) newSize) ;;quad 2 
-           (recTile newYard (list (+ (car currOrigin) newSize) (+ (cadr currOrigin) newSize)) newSize) ;;quad 3
+           (recTile (createIfNeeded currOrigin currSize 0 yard) currOrigin newSize) ;;quad 0
+           (recTile (createIfNeeded currOrigin currSize 1 yard) (list (+ (car currOrigin) newSize) (cadr currOrigin)) newSize) ;;quad 1
+           (recTile (createIfNeeded currOrigin currSize 2 yard) (list (car currOrigin) (+ (cadr currOrigin) newSize)) newSize) ;;quad 2
+           (recTile (createIfNeeded currOrigin currSize 3 yard) (list (+ (car currOrigin) newSize) (+ (cadr currOrigin) newSize)) newSize) ;;quad 3
          ) 
       )
   )
@@ -119,25 +123,25 @@
 
 ;; ------------------------------------ Imaging ----------------------------
 
-(define (paintRemaining yard dc)
-  (let ([aTile (car yard) ] [x (getX aTile] [y getY aTile])
-  (send dc set-pixel )
-    )
-  )
-
-  
-(define (genCourtyardImage missingTile n)
-  (let (
-        [yard (tileYard missingTile n)]
-        [target (make-bitmap (expt 2 n) (expt 2 n))]
-        [dc (new bitmap-dc% [bitmap target]]
-       )
-
-
-    )
-
-
-  )
+;;(define (paintRemaining yard dc)
+;;  (let ([aTile (car yard) ] [x (getX aTile] [y getY aTile])
+;;  (send dc set-pixel )
+;;    )
+;;  )
+;;
+;;  
+;;(define (genCourtyardImage missingTile n)
+;;  (let (
+;;        [yard (tileYard missingTile n)]
+;;        [target (make-bitmap (expt 2 n) (expt 2 n))]
+;;        [dc (new bitmap-dc% [bitmap target]]
+;;       )
+;;
+;;
+;;    )
+;;
+;;
+;;  )
 
 
 ;;------------------------------ TEST cases ----------------------------------
