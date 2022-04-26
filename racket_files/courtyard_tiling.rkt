@@ -1,7 +1,14 @@
 #lang racket
 (require racket/draw)
+(require graphics/graphics)
 
- (require graphics/graphics)
+#|
+ | Marcos Traverso
+ | I pledge my honor that I have abided by the Stevens Honor System.
+ |
+ | For info on running, and expected outputs, see bottom section of file (line 175+).
+ |#
+
 
 ;;------------Tile definitions---------
 
@@ -10,7 +17,7 @@
   (list (list x y) uid color)
 )
 
-;;get x coordinate for a tile
+;;get the  coordinate for a tile
 (define (getTileCoord tile)
   (car tile)
 )
@@ -40,7 +47,7 @@
 ;; returns a unique id for each tromino, used for differentiating trominoes in the output.
 (define (generate-id currOrigin currSize quadrant)
      (format "~v-~v-~v-~v" (car currOrigin) (cadr currOrigin) currSize quadrant)
-  )
+)
 
 ;; returns a color for each tromino
 (define (generate-color currOrigin currSize)
@@ -56,7 +63,7 @@
   (list (+ (car currOrigin) (/ currSize 2)) (+ (cadr currOrigin) (/ currSize 2 ) ) )
   )
 
-
+;;returns the quadrant a tile is in, given a center
 ;; 2 3
 ;; 0 1
 (define (getQuad center tile)
@@ -76,6 +83,7 @@
   )
 
 
+;; retunrs a tile of a tromino to be placed around the center, given a missing tile and info on the courtyard scale  
 (define (createIfNeeded currOrigin currSize targetQuad existingTile)
   (let* (
         [center (get-center currOrigin currSize)]
@@ -96,9 +104,9 @@
 )
 
 
-;;recursively places trominoes on the grid, quadrant by quadrant
+;;recursively places trominoes on the grid, quadrant by quadrant until its broken down into the 2x2 base case
 (define (recTile missingTile currOrigin currSize)
-  (if (equal? currSize 2)
+  (if (equal? currSize 2) ;;Base 2x2 case, does not recurse into quadrants 
       (list
            (createIfNeeded currOrigin currSize 0 missingTile) ;;quad 0
            (createIfNeeded currOrigin currSize 1 missingTile) ;;quad 1
@@ -108,7 +116,7 @@
       (let* (
              [newSize (/ currSize 2)]
             )
-        (append
+        (append ;; not base case, recursively tile 4 quadrants
            (recTile (createIfNeeded currOrigin currSize 0 missingTile) currOrigin newSize) ;;quad 0
            (recTile (createIfNeeded currOrigin currSize 1 missingTile) (list (+ (car currOrigin) newSize) (cadr currOrigin)) newSize) ;;quad 1
            (recTile (createIfNeeded currOrigin currSize 2 missingTile) (list (car currOrigin) (+ (cadr currOrigin) newSize)) newSize) ;;quad 2
@@ -119,14 +127,15 @@
 )
 
 
-;; TODO: Fix duplicates
-;;calls the recursive tiler with starting values and removes duplicates 
+
+;;calls the recursive tiler with starting values
 (define (tileYard missingTile n)
   (recTile (tile (car missingTile) (cadr missingTile) "0" "black") '(0 0) (expt 2 n))
-  )
+)
 
 ;; ------------------------------------ Imaging ----------------------------
 
+;;recursively places remaining Tiles as pixels on the bitmap 
 (define (paintRemaining yard dc n)
   (if (equal? yard '())
       #t
@@ -138,6 +147,8 @@
   )
 )
 
+
+;; calls tileYard to receive solution and paintRemaining to draw it to an image file
 (define (genCourtyardImage missingTile n)
   (let* (
         [yard (tileYard missingTile n)]
@@ -145,19 +156,68 @@
         [dc (new bitmap-dc% [bitmap target])]
        )
     (paintRemaining yard dc (sub1(expt 2 n)))
-    (send target save-file "box.png" 'png)
+    (send target save-file "courtyard.png" 'png)
     )
-
-
   )
 
 
 
 ;;------------------------------ TEST cases ----------------------------------
 
+;; some methods to test functionality
 
 ;; (generate-color '(2 2) currSize 0)
 ;; (tileYard '(1 1) 2)                      ;;test 4x4 courtyard
 ;; (place-tile-center '((1 2)) '(0 2) 2 1)  ;;test base 2x2 case
 ;; (find-missing '((1 2)) '(0 2) 2)         ;;test finding quadrant for base 2x2 case
- (genCourtyardImage '(4 13) 5)
+;; (genCourtyardImage '(4 7) 5)
+
+;; ------------------------------ Running the Program & Interpreting Output -------------------------------------
+
+#|
+ | To get text output, call `tileYard`
+ | The output will be formatted as a list of tiles, where each tile is formatted as (coordinate, tromino-id, color).
+ | Tiles with the same tromino-id belong to the same tromino, these ids are unique per tromino.
+ | Note: coordinates are 0-inclusive, so the bottom left corner tile of the courtyard is (0,0)
+ |
+ | Usage:
+ | (tileYard coordinate n)
+ | coordinate -> '(int int)
+ | n -> int
+ |
+ | Example:
+ | > (tileYard '(1 3) 2)             ;;tiles a 2^3 x 2^3 yard with a missing tile at (1,3)
+ | '(((0 0) "0-0-2-3" "Pale Green")
+ |   ((1 0) "0-0-2-3" "Pale Green")
+ |   ((0 1) "0-0-2-3" "Pale Green")
+ |   ((1 1) "0-0-4-2" "Tomato")
+ |   ((2 0) "2-0-2-2" "CornflowerBlue")
+ |   ((3 0) "2-0-2-2" "CornflowerBlue")
+ |   ((2 1) "0-0-4-2" "Tomato")
+ |   ((3 1) "2-0-2-2" "CornflowerBlue")
+ |   ((0 2) "0-2-2-3" "CornflowerBlue")
+ |   ((1 2) "0-2-2-3" "CornflowerBlue")
+ |   ((0 3) "0-2-2-3" "CornflowerBlue")
+ |   ((1 3) "0" "black")
+ |   ((2 2) "0-0-4-2" "Tomato")
+ |   ((3 2) "2-2-2-0" "Pale Green")
+ |   ((2 3) "2-2-2-0" "Pale Green")
+ |   ((3 3) "2-2-2-0" "Pale Green"))
+ |#
+
+
+#|
+ | To get image output, call `genCourtyardImage`
+ | The output will be a png file in the current working directory named `courtyard.png`.
+ | Note: Since the image size will be 2^n x 2^n pixels, some imaging software will perform blurry upscales.(Working programs: MSPaint, GIMP)
+ | Note (again): coordinates are 0-inclusive, so the bottom left corner tile of the courtyard is (0,0)
+ |
+ | Usage:
+ | (genCourtyardImage coordinate n)
+ | coordinate -> '(int int)
+ | n -> int
+ |
+ | example:
+ | > (genCourtyardImage '(4 6) 3) ;; generates a 2^3 x 2^3 courtyard image with the missing tile/pixel at (4,6), returns #t if it was successful
+ | #t
+ |#
