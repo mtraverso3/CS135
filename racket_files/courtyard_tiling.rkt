@@ -6,26 +6,28 @@
  | Marcos Traverso
  | I pledge my honor that I have abided by the Stevens Honor System.
  |
+ |
  | For info on running, and expected outputs, see bottom section of file (line 175+).
  |#
 
 
-;;------------Tile definitions---------
 
-;;A tile contains a (x,y) value and a `value` for coloring
+;;------------Tile definitions----------------------------
+
+;;A tile contains a x and y position, a tromino uid, and a color name for coloring the image
 (define (tile x y uid color)
   (list (list x y) uid color)
 )
 
-;;get the  coordinate for a tile
+;;get the coordinate of a tile
 (define (getTileCoord tile)
   (car tile)
 )
 
 
-;; --------- Coordinate Definitions --------------
+;; -------------- Coordinate Definitions ----------------------------
 
-;;A tile contains a (x,y) value and a `value` for coloring
+;;A coordinate which contains a (x,y)
 (define (coord x y)
   (list x y)
 )
@@ -41,7 +43,7 @@
 )
 
 
-;;----------------------------
+;;---------------------------- Courtyard Tiler ---------------------
 
 
 ;; returns a unique id for each tromino, used for differentiating trominoes in the output.
@@ -83,7 +85,7 @@
   )
 
 
-;; retunrs a tile of a tromino to be placed around the center, given a missing tile and info on the courtyard scale  
+;; retunrs a tile of a tromino to be placed around the center, given a missing tile and info on the courtyard scale
 (define (createIfNeeded currOrigin currSize targetQuad existingTile)
   (let* (
         [center (get-center currOrigin currSize)]
@@ -97,7 +99,7 @@
           [(equal? targetQuad 1) (tile (car center)        (sub1 (cadr center)) r c)]
           [(equal? targetQuad 2) (tile (sub1 (car center)) (cadr center)        r c)]
           [(equal? targetQuad 3) (tile (car center)       (cadr center)        r c)]
-          ) 
+          )
         )
     )
   )
@@ -106,22 +108,22 @@
 
 ;;recursively places trominoes on the grid, quadrant by quadrant until its broken down into the 2x2 base case
 (define (recTile missingTile currOrigin currSize)
-  (if (equal? currSize 2) ;;Base 2x2 case, does not recurse into quadrants 
+  (if (equal? currSize 2) ;;Base 2x2 case, does not recurse into quadrants
       (list
-           (createIfNeeded currOrigin currSize 0 missingTile) ;;quad 0
-           (createIfNeeded currOrigin currSize 1 missingTile) ;;quad 1
-           (createIfNeeded currOrigin currSize 2 missingTile) ;;quad 2
-           (createIfNeeded currOrigin currSize 3 missingTile) ;;quad 3
+           (createIfNeeded currOrigin currSize 0 missingTile)
+           (createIfNeeded currOrigin currSize 1 missingTile)
+           (createIfNeeded currOrigin currSize 2 missingTile)
+           (createIfNeeded currOrigin currSize 3 missingTile)
          )
       (let* (
              [newSize (/ currSize 2)]
             )
         (append ;; not base case, recursively tile 4 quadrants
-           (recTile (createIfNeeded currOrigin currSize 0 missingTile) currOrigin newSize) ;;quad 0
-           (recTile (createIfNeeded currOrigin currSize 1 missingTile) (list (+ (car currOrigin) newSize) (cadr currOrigin)) newSize) ;;quad 1
-           (recTile (createIfNeeded currOrigin currSize 2 missingTile) (list (car currOrigin) (+ (cadr currOrigin) newSize)) newSize) ;;quad 2
+           (recTile (createIfNeeded currOrigin currSize 0 missingTile)  currOrigin newSize)                                                       ;;quad 0
+           (recTile (createIfNeeded currOrigin currSize 1 missingTile) (list (+ (car currOrigin) newSize) (cadr currOrigin))   newSize)           ;;quad 1
+           (recTile (createIfNeeded currOrigin currSize 2 missingTile) (list (car currOrigin)             (+ (cadr currOrigin) newSize)) newSize) ;;quad 2
            (recTile (createIfNeeded currOrigin currSize 3 missingTile) (list (+ (car currOrigin) newSize) (+ (cadr currOrigin) newSize)) newSize) ;;quad 3
-         ) 
+         )
       )
   )
 )
@@ -135,12 +137,12 @@
 
 ;; ------------------------------------ Imaging ----------------------------
 
-;;recursively places remaining Tiles as pixels on the bitmap 
+;;recursively places remaining Tiles as pixels on the bitmap
 (define (paintRemaining yard dc n)
   (if (equal? yard '())
       #t
       (let* ([aTile (car yard) ] [x (getX (getTileCoord aTile))] [y (- n (getY (getTileCoord aTile)))])
-        
+
         (send dc set-pixel x y (send the-color-database find-color (caddr aTile)) )
         (paintRemaining (cdr yard) dc n)
     )
@@ -148,7 +150,7 @@
 )
 
 
-;; calls tileYard to receive solution and paintRemaining to draw it to an image file
+;; calls `tileYard` to receive solution, and then `paintRemaining` to draw it to an image file
 (define (genCourtyardImage missingTile n)
   (let* (
         [yard (tileYard missingTile n)]
@@ -162,17 +164,18 @@
 
 
 
-;;------------------------------ TEST cases ----------------------------------
+;;------------------------------ test functions ----------------------------------
 
-;; some methods to test functionality
+;; some methods used to test functionalities
 
-;; (generate-color '(2 2) currSize 0)
+;; (generate-color '(2 2) currSize 0)       ;;test color generation
 ;; (tileYard '(1 1) 2)                      ;;test 4x4 courtyard
 ;; (place-tile-center '((1 2)) '(0 2) 2 1)  ;;test base 2x2 case
 ;; (find-missing '((1 2)) '(0 2) 2)         ;;test finding quadrant for base 2x2 case
-;; (genCourtyardImage '(4 7) 5)
+;; (genCourtyardImage '(4 7) 5)             ;;test courtyard image generation
 
 ;; ------------------------------ Running the Program & Interpreting Output -------------------------------------
+
 
 #|
  | To get text output, call `tileYard`
@@ -208,7 +211,7 @@
 
 #|
  | To get image output, call `genCourtyardImage`
- | The output will be a png file in the current working directory named `courtyard.png`.
+ | The output will be a png file named `courtyard.png` in the current working directory.
  | Note: Since the image size will be 2^n x 2^n pixels, some imaging software will perform blurry upscales.(Working programs: MSPaint, GIMP)
  | Note (again): coordinates are 0-inclusive, so the bottom left corner tile of the courtyard is (0,0)
  |
