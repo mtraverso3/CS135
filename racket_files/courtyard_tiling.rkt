@@ -46,21 +46,21 @@
 
 ;; returns a unique id for each tromino, used for differentiating trominoes in the output.
 (define (generate-id currOrigin currSize quadrant)
-     (format "~v-~v-~v-~v" (car currOrigin) (cadr currOrigin) currSize quadrant)
+     (format "~v-~v-~v-~v" (getX currOrigin) (getY currOrigin) currSize quadrant)
 )
 
 ;; returns a color for each tromino
 (define (generate-color currOrigin currSize)
      (cond
        [(not (equal? currSize 2)) "Tomato"]
-       [(equal? (modulo (car currOrigin) 4 ) (modulo (cadr currOrigin) 4 ) ) "Pale Green"]
+       [(equal? (modulo (getX currOrigin) 4 ) (modulo (getY currOrigin) 4 ) ) "Pale Green"]
        [else "CornflowerBlue"]
      )
   )
 
 ;;returns the center coordinate, given origin and size
 (define (get-center currOrigin currSize)
-  (list (+ (car currOrigin) (/ currSize 2)) (+ (cadr currOrigin) (/ currSize 2 ) ) )
+  (coord (+ (getX currOrigin) (/ currSize 2)) (+ (getY currOrigin) (/ currSize 2 ) ) )
   )
 
 ;;returns the quadrant a tile is in, given a center
@@ -74,9 +74,9 @@
          [tileY (getY (getTileCoord tile))]
          )
    (cond
-     [(and (< tileX centerX ) (< tileY centerY)) 0]
-     [(and (>= tileX centerX ) (< tileY centerY)) 1]
-     [(and (< tileX centerX ) (>= tileY centerY)) 2]
+     [(and (< tileX centerX )  (< tileY centerY))  0]
+     [(and (>= tileX centerX ) (< tileY centerY))  1]
+     [(and (< tileX centerX )  (>= tileY centerY)) 2]
      [(and (>= tileX centerX ) (>= tileY centerY)) 3]
    )
   )
@@ -93,10 +93,10 @@
         (let ([r (generate-id currOrigin currSize existingQuad)]
               [c (generate-color currOrigin currSize)])
           (cond
-          [(equal? targetQuad 0) (tile (sub1 (car center)) (sub1 (cadr center)) r c)]
-          [(equal? targetQuad 1) (tile (car center)        (sub1 (cadr center)) r c)]
-          [(equal? targetQuad 2) (tile (sub1 (car center)) (cadr center)        r c)]
-          [(equal? targetQuad 3) (tile (car center)       (cadr center)        r c)]
+          [(equal? targetQuad 0) (tile (sub1 (getX center))  (sub1 (getY center)) r c)]
+          [(equal? targetQuad 1) (tile (getX center)         (sub1 (getY center)) r c)]
+          [(equal? targetQuad 2) (tile (sub1 (getX center))  (getY center)        r c)]
+          [(equal? targetQuad 3) (tile (getX center)         (getY center)        r c)]
           ) 
         )
     )
@@ -118,9 +118,9 @@
             )
         (append ;; not base case, recursively tile 4 quadrants
            (recTile (createIfNeeded currOrigin currSize 0 missingTile) currOrigin newSize) ;;quad 0
-           (recTile (createIfNeeded currOrigin currSize 1 missingTile) (list (+ (car currOrigin) newSize) (cadr currOrigin)) newSize) ;;quad 1
-           (recTile (createIfNeeded currOrigin currSize 2 missingTile) (list (car currOrigin) (+ (cadr currOrigin) newSize)) newSize) ;;quad 2
-           (recTile (createIfNeeded currOrigin currSize 3 missingTile) (list (+ (car currOrigin) newSize) (+ (cadr currOrigin) newSize)) newSize) ;;quad 3
+           (recTile (createIfNeeded currOrigin currSize 1 missingTile) (coord (+ (getX currOrigin) newSize)             (getY currOrigin)) newSize) ;;quad 1
+           (recTile (createIfNeeded currOrigin currSize 2 missingTile) (coord (getX currOrigin)             (+ (getY currOrigin) newSize)) newSize) ;;quad 2
+           (recTile (createIfNeeded currOrigin currSize 3 missingTile) (coord (+ (getX currOrigin) newSize) (+ (getY currOrigin) newSize)) newSize) ;;quad 3
          ) 
       )
   )
@@ -129,8 +129,8 @@
 
 
 ;;calls the recursive tiler with starting values
-(define (tileYard missingTile n)
-  (recTile (tile (car missingTile) (cadr missingTile) "0" "black") '(0 0) (expt 2 n))
+(define (tileYard missingCoord n)
+  (recTile (tile (getX missingCoord) (getY missingCoord) "0" "black") (coord 0 0) (expt 2 n))
 )
 
 ;; ------------------------------------ Imaging ----------------------------
@@ -155,7 +155,7 @@
         [target (make-bitmap (expt 2 n) (expt 2 n))]
         [dc (new bitmap-dc% [bitmap target])]
        )
-    (paintRemaining yard dc (sub1(expt 2 n)))
+    (paintRemaining yard dc (sub1 (expt 2 n)))
     (send target save-file "courtyard.png" 'png)
     )
   )
