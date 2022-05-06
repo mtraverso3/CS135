@@ -1,4 +1,4 @@
-#lang racket
+;#lang racket
 
 ;------------------- Structures ------------------------
 
@@ -26,16 +26,6 @@
    (car statement)
 )
 
-
-(define (removeDoubleNot statement)
-   (cond
-     [(empty? statement) '()]
-     [(empty? (cdr statement)) statement]
-     [(and (equal? (car statement) "~") (equal? (cadr statement) "~"))  (removeDoubleNot (cddr statement))]
-     [else  (cons (car statement) (removeDoubleNot (cdr statement)))]
-   )
-)
-
 (define (removeDoubleNot statement)
    (cond
      [(empty? statement) '()]
@@ -58,57 +48,80 @@
 (define (impOp) '("->"))
 (define (iffOp) '("<->"))
 
-
-; (list '("~") '(E) '(E))
-
-(define (applyNot statement)
-    (list '("~") statement)
+(define (matchesOperator? op)
+  (or (equal? (orOp) op)
+    (or (equal? (andOp) op)
+      (or (equal? (impOp) op)
+        (equal? (iffOp) op)
+      )
+    )
+  )
 )
 
 (define (operable? statement)
-    (if (equal? (car statement) (notOp))
-        (operable? (cadr statement))
-        "TODO" ; TODO
-    )
+  (if (equal? (car statement) (notOp))
+    (operable? (cadr statement))
+    (matchesOperator? (car statement))
+  )
 )
-
-
 
 (define (getOperable statements)
     (if (null? statements)
         #f
-        "TODO" ; TODO
+      (if (operable? (car statements)
+        (car statements)
+        (operable? (cdr statements))
+      )
     )
+)
+
+(define (applyNot statement)
+  (removeDoubleNot (list (notOp) statement))
 )
 
 ;------------------- Tree Method ------------------------
 
+
+
+
+
+
+;---------------------------------------------------------
 (define (contradiciton? statements)
-    (if (null? statements)
-        #t
-        (member? car()
+  (if (null? statements)
+    #f
+    (if (not (member? (applyNot (car statements))))
+      (contradiction? (cdr statements))
+      #t
     )
+  )
 )
 
-
-(define (matchAndBranch statement)
-    (if (car))
-    (cond
-    []
-    []
-    []
+(define (matchAndBranch statement, remaining)
+    (if (equal? (notOp) (car statement))
+      (cond
+        [(equal? (cadar) (orOp)) (handleOR )  ]
+        [(equal? (cadar) (andOp))  ]
+        [(equal? (cadar) (impOp))  ]
+        [(equal? (cadar) (iffOp))  ]
+      )
+      (cond
+        [(equal? (cadar) (orOp)) (handleOR )  ]
+        [(equal? (cadar) (andOp))  ]
+        [(equal? (cadar) (impOp))  ]
+        [(equal? (cadar) (iffOp))  ]
+      )
     )
 )
 
 
 (define (recBrancher statements)
-    (let ([statement (getOperable statements)])
+    (let (
+    [statement (getOperable statements)]
+    [remaining (remove statement statements)])
         (if (statement)
-
-        statements ;;no operable statements left
+          (matchAndBranch statements remaining)
+          statements ;;no operable statements left
         )
     )
-
 )
-
-
