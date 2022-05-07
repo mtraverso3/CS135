@@ -24,11 +24,11 @@
 
 ;; operators: & | ~ -> <- <->
 
-(define (notOp) '("~"))
-(define (orOp) '("|"))
-(define (andOp) '("&"))
-(define (impOp) '("->"))
-(define (iffOp) '("<->"))
+(define (notOp) "~")
+(define (orOp) "|")
+(define (andOp) "&")
+(define (impOp) "->")
+(define (iffOp) "<->")
 (define (Ops) (list (orOp) (andOp) (impOp) (iffOp)))
 
 (define (matchesOperator? op)
@@ -36,10 +36,14 @@
 )
 
 (define (operable? statement)
-	(if (equal? (car statement) (notOp))
-		(operable? (cadr statement))
-		(matchesOperator? (car statement))
+	(if (list? statement)
+		(if (equal? (car statement) (notOp))
+			(operable? (cadr statement))
+			(matchesOperator? (car statement))
+		)
+		#f
 	)
+
 )
 
 (define (getOperable statements)
@@ -54,10 +58,11 @@
 
 (define (removeDoubleNot statement)
 	(cond
-		[(empty? statement) '()]
-		[(empty? (cdr statement)) statement]
-		[(and (equal? (car statement) (notOp)) (equal? (caadr statement) (notOp))) (removeDoubleNot (cadadr statement))]
-		[else (cons (car statement) (removeDoubleNot (cdr statement)))]
+		[(not (list? statement))                                                                                            statement]
+		[(and (equal? (car statement) (notOp)) (not (list? (cadr statement))))                                              statement]
+		[(and (equal? (car statement) (notOp)) (equal? (caadr statement) (notOp)))               (removeDoubleNot (cadadr statement))]
+		[(equal? (car statement) (notOp))                                           (list (notOp) (removeDoubleNot (cadr statement)))]
+		[else                           (list (car statement) (removeDoubleNot (cadr statement)) (removeDoubleNot (caddr statement)))]
 	)
 )
 
@@ -84,7 +89,6 @@
 		[(and (not branchA) branchB) branchB]
 		[else #f]
 	)
-;	(list branchA branchB)
 )
 
 (define (handleOr statement remaining)
@@ -203,25 +207,26 @@
 
 ;--------------------Test cases ---------------------------
 
-(define (testStatement1) (list (orOp) '("A") '("B")))
-(define (testStatement2) (list (notOp) (list (orOp) '("A") '("B"))))
-(define (testStatement3) (list (notOp) '("A")))
-(define (testStatement4) '("A"))
-(define (testStatement5) (list (notOp) (list (notOp) '("A"))))
+(define (testStatement1) (list (orOp) "A" "B"))
+(define (testStatement2) (list (notOp) (list (orOp) "A" "B")))
+(define (testStatement3) (list (notOp) "A"))
+(define (testStatement4) "A")
+(define (testStatement5) (list (notOp) (list (notOp) "A")))
+(define (testStatement6) '("~" ("~" ("|" ("|" "A" "B") ("~" ("|" "A" "B"))))))
 
 (define (testHyp1) (list (testStatement1)))
-(define (testHyp2) (list (list (orOp) '("A") '("B")) (applyNot '("A"))))
+(define (testHyp2) (list (list (orOp) "A" "B") (applyNot "A")))
 
 
-; (matchesOperator? '("&")) -> #t
-; (matchesOperator? '("aaa")) -> #f
+; (matchesOperator? "&") -> #t
+; (matchesOperator? "aaa") -> #f
 
 ; (operable? (testStatement1)) -> #t
 ; (operable? (testStatement2)) -> #t
 ; (operable? (testStatement3)) -> #f
 
-; (getOperable (list (testStatement1) (testStatement2) (testStatement3) )) -> '(("|") ("A") ("B"))
-; (getOperable (list (testStatement2) (testStatement1) (testStatement3) )) -> '(("~") (("|") ("A") ("B")))
+; (getOperable (list (testStatement1) (testStatement2) (testStatement3) )) -> '("|" "A" "B")
+; (getOperable (list (testStatement2) (testStatement1) (testStatement3) )) -> '("~" ("|" "A" "B"))
 ; (getOperable (list (testStatement3) (testStatement4)) ) -> #f
 
 ; (removeDoubleNot (testStatement3)) - > '(("~") ("A"))
@@ -232,9 +237,9 @@
 
 ;---------------------------------------------------------------
 
-(define (hyp1) (list (impOp) '("B") '("C")))
-(define (hyp2) (list (orOp) '("D") '("C")))
-(define (hyp3) (list (iffOp) '("B") (applyNot '("D"))))
-(define (conc) (applyNot (list (andOp) '("B") '("C"))))
+(define (hyp1) (list (impOp) "B" "C"))
+(define (hyp2) (list (orOp) "D" "C"))
+(define (hyp3) (list (iffOp) "B" (applyNot "D")))
+(define (conc) (applyNot (list (andOp) "B" "C")))
 
 (define (testArgument1) (recBrancher (list (hyp1) (hyp2) (hyp3) (applyNot (conc)))))
