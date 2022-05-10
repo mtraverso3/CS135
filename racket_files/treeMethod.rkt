@@ -1,35 +1,24 @@
-;#lang racket
+#lang racket
 
-;------------------- Structures ------------------------
+#|
+ | Marcos Traverso
+ | I pledge my honor that I have abided by the Stevens Honor System.
+ |
+ |
+ | For info on running, and expected outputs, see bottom section of file (line 240+).
+ |#
 
-(define (createArgument hypotheses conclusion)
-	(list hypotheses conclusion)
-)
+; ------------------------------ Base methods ----------------------------------
 
-(define (createArgument2 conclusion . hypotheses)
-	(list (list conclusion) hypotheses)
-)
+; operators: & | ~ -> <->
 
-(define (addHypothesis statement hypotheses)
-	(cons statement hypotheses)
-)
+(define notOp "~")
+(define orOp "|")
+(define andOp "&")
+(define impOp "->")
+(define iffOp "<->")
 
-(define (removeHypothesis statement hypotheses)
-	(remove statement hypotheses)
-)
-
-;;https://stackoverflow.com/questions/53924157/parsing-a-text-to-the-tree-in-racket-scheme
-
-; ----------------------------------------------------------------
-
-;; operators: & | ~ -> <- <->
-
-(define (notOp) "~")
-(define (orOp) "|")
-(define (andOp) "&")
-(define (impOp) "->")
-(define (iffOp) "<->")
-(define (Ops) (list (orOp) (andOp) (impOp) (iffOp)))
+(define (Ops) (list orOp andOp impOp iffOp))
 
 (define (matchesOperator? op)
 	(and (member op (Ops)) #t)
@@ -37,7 +26,7 @@
 
 (define (operable? statement)
 	(if (list? statement)
-		(if (equal? (car statement) (notOp))
+		(if (equal? (car statement) notOp)
 			(operable? (cadr statement))
 			(matchesOperator? (car statement))
 		)
@@ -58,16 +47,16 @@
 
 (define (removeDoubleNot statement)
 	(cond
-		[(not (list? statement))                                                                                            statement]
-		[(and (equal? (car statement) (notOp)) (not (list? (cadr statement))))                                              statement]
-		[(and (equal? (car statement) (notOp)) (equal? (caadr statement) (notOp)))               (removeDoubleNot (cadadr statement))]
-		[(equal? (car statement) (notOp))                                           (list (notOp) (removeDoubleNot (cadr statement)))]
-		[else                           (list (car statement) (removeDoubleNot (cadr statement)) (removeDoubleNot (caddr statement)))]
+		[(not (list? statement)) statement]
+		[(and (equal? (car statement) notOp) (not (list? (cadr statement)))) statement]
+		[(and (equal? (car statement) notOp) (equal? (caadr statement) notOp)) (removeDoubleNot (cadadr statement))]
+		[(equal? (car statement) notOp) (list notOp (removeDoubleNot (cadr statement)))]
+		[else (list (car statement) (removeDoubleNot (cadr statement)) (removeDoubleNot (caddr statement)))]
 	)
 )
 
 (define (applyNot statement)
-	(removeDoubleNot (list (notOp) statement))
+	(removeDoubleNot (list notOp statement))
 )
 
 
@@ -81,7 +70,8 @@
 	)
 )
 
-; ------------------ Decomposition rules ---------------------------------------
+; -------------------------- Decomposition Rules ---------------------------------------
+
 (define (intelligentReturn branchA branchB)
 	(cond
 		[(and branchA branchB) (list branchA branchB)]
@@ -173,19 +163,19 @@
 
 ;------------------- Tree Method ------------------------
 
-(define (matchAndBranch statement remaining) ;TODO
-	(if (equal? (notOp) (car statement))
+(define (matchAndBranch statement remaining)
+	(if (equal? notOp (car statement))
 		(cond
-			[(equal? (cadar statement) (orOp)) (handleNotOr statement remaining)]
-			[(equal? (cadar statement) (andOp)) (handleNotAnd statement remaining)]
-			[(equal? (cadar statement) (impOp)) (handleNotImp statement remaining)]
-			[(equal? (cadar statement) (iffOp)) (handleNotIff statement remaining)]
+			[(equal? (cadar statement) orOp) (handleNotOr statement remaining)]
+			[(equal? (cadar statement) andOp) (handleNotAnd statement remaining)]
+			[(equal? (cadar statement) impOp) (handleNotImp statement remaining)]
+			[(equal? (cadar statement) iffOp) (handleNotIff statement remaining)]
 		)
 		(cond
-			[(equal? (car statement) (orOp)) (handleOr statement remaining)]
-			[(equal? (car statement) (andOp)) (handleAnd statement remaining)]
-			[(equal? (car statement) (impOp)) (handleImp statement remaining)]
-			[(equal? (car statement) (iffOp)) (handleIff statement remaining)]
+			[(equal? (car statement) orOp) (handleOr statement remaining)]
+			[(equal? (car statement) andOp) (handleAnd statement remaining)]
+			[(equal? (car statement) impOp) (handleImp statement remaining)]
+			[(equal? (car statement) iffOp) (handleIff statement remaining)]
 		)
 	)
 )
@@ -197,7 +187,7 @@
 		(let (
 			     [statement (getOperable statements)])
 			(if statement
-				(matchAndBranch statement (remove statement statements))
+				(matchAndBranch (removeDoubleNot statement) (remove statement statements))
 				(remove-duplicates statements) ;;no operable statements left
 			)
 		)
@@ -207,16 +197,19 @@
 
 ;--------------------Test cases ---------------------------
 
-(define (testStatement1) (list (orOp) "A" "B"))
-(define (testStatement2) (list (notOp) (list (orOp) "A" "B")))
-(define (testStatement3) (list (notOp) "A"))
+(define (testStatement1) (list orOp "A" "B"))
+(define (testStatement2) (list notOp (list orOp "A" "B")))
+(define (testStatement3) (list notOp "A"))
 (define (testStatement4) "A")
-(define (testStatement5) (list (notOp) (list (notOp) "A")))
+(define (testStatement5) (list notOp (list notOp "A")))
 (define (testStatement6) '("~" ("~" ("|" ("|" "A" "B") ("~" ("|" "A" "B"))))))
 
 (define (testHyp1) (list (testStatement1)))
-(define (testHyp2) (list (list (orOp) "A" "B") (applyNot "A")))
+(define (testHyp2) (list (list orOp "A" "B") (applyNot "A")))
 
+; ---------------------------------- Test Cases -------------------------------------------
+
+;These are some test cases I used to test functionailities.
 
 ; (matchesOperator? "&") -> #t
 ; (matchesOperator? "aaa") -> #f
@@ -235,11 +228,55 @@
 ; (contradiction? (list (testStatement1) (applyNot (testStatement1))) ) -> #t
 ; (contradiction? (list (testStatement1) (testStatement3)) ) -> #f
 
-;---------------------------------------------------------------
+;--------------------------------- Running the Program ------------------------------------
 
-(define (hyp1) (list (impOp) "B" "C"))
-(define (hyp2) (list (orOp) "D" "C"))
-(define (hyp3) (list (iffOp) "B" (applyNot "D")))
-(define (conc) (applyNot (list (andOp) "B" "C")))
+#|
+ | To run the program, call `recBrancher` with a list of statements.
+ | `recBrancher` will then apply the tree method and return a list of the contradictions it finds.
+ |
+ |
+ | Input:
+ |
+ | Statements are formatted in prefix form with lists, so the statement "A -> B", would be written as (list "->" "A" "B").
+ | A more complex statement "(A & B) <-> ~C" would be written as (list "<->" (list "&" "A" "B") ("~" "C")).
+ | the variable names don't need to be A, or B, they can be anything, such as "q_5"
+ |
+ | Here is a list of the allowed operators, they also have macros for easy usage:
+ | AND     - "&"    - andOp
+ | OR      - "|"    - orOp
+ | IMPLIES - "->"   - impOp
+ | IFF     - "<->"  - iffOp
+ | NOT     - "~"    - notOp    -   `(applyNot statement)`          this last one removes double negations on the way :)
+ |
+ | `recBrancher` can be called with a list of statements as `(recBrancher (list statement statement statement))`.
+ |
+ |
+ | Output:
+ |
+ | A list of counterexamples. Each counterexample is a list containing the variable names and whether or not they are false.
+ |  For example, '("C" "B" ("~" "D")) , would mean that a counterexample is C = #T, B = #T, D = #F.
+ |
+ |
+ | Example:
+ |
+ | Here's an example input and output for the program of this argument:
+ | Bbb ->  C
+ | D    v  C
+ | Bbb <-> ~D
+ | ————————————
+ | ∴ ~(Bbb ^ C)
+ |#
 
-(define (testArgument1) (recBrancher (list (hyp1) (hyp2) (hyp3) (applyNot (conc)))))
+(define hyp1 (list impOp "Bbb" "C"))
+(define hyp2 (list orOp "D" "C"))
+(define hyp3 (list iffOp "Bbb" (applyNot "D")))
+(define conc (applyNot (list andOp "Bbb" "C")))
+
+(define (testArgument) (recBrancher (list hyp1 hyp2 hyp3 (applyNot conc))))
+
+#|
+ |Welcome to Racket v8.3 [cs].
+ |> (testArgument)
+ |	'("C" "Bbb" ("~" "D"))
+ |#
+
